@@ -1,6 +1,6 @@
 // ====== CONFIG ======
 const API_KEY = "AIzaSyAo80ZVdId9zitFFbNijAPlD_SK107ZsbE";
-const MODEL = "imagen-4.0-generate-001";
+const MODEL = "imagen-4.0-generate-001";c
 
 // ====== GENERATE IMAGE ======
 async function generateImage() {
