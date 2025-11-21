@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAGICPHO - AI Studio</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom Configuration for Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        slate: { 850: '#1e293b' },
+                        violet: { 950: '#1e1b4b' }
+                    },
+                    animation: {
+                        'float-slow': 'float-slow 20s ease-in-out infinite',
+                        'float-medium': 'float-medium 15s linear infinite',
+                        'fade-up': 'fadeSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        'float-slow': {
+                            '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                        },
+                        'float-medium': {
+                            '0%': { transform: 'rotate(0deg) translate(0, 0)' },
+                            '50%': { transform: 'rotate(180deg) translate(-40px, 30px)' },
+                            '100%': { transform: 'rotate(360deg) translate(0, 0)' },
+                        },
+                        fadeSlideUp: {
+                            'from': { opacity: '0', transform: 'translateY(20px)' },
+                            'to': { opacity: '1', transform: 'translateY(0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Fira+Code:wght@400;600&display=swap');
+
+        body {
+            background-color: #0F172A;
+            background-image: linear-gradient(135deg, #0F172A 0%, #2E1065 60%, #4C1D95 100%);
+            color: #f1f5f9;
+            overflow: hidden; /* Prevent body scroll */
+        }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
+
+        /* LOGIKA ANIMASI HEADER */
+        #dashboard-title-container {
+            position: absolute;
+            top: 0;
+            transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transform-origin: top left;
+            white-space: nowrap;
+            z-index: 50;
+        }
+
+        .title-centered { left: 50%; transform: translateX(-50%) scale(1); }
+        .title-scrolled { left: 0; transform: translate(8px, 8px) scale(0.45); }
+
+        /* Sidebar Transition */
+        .sidebar-transition {
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+        }
+
+        .hidden-custom { display: none !important; }
+        
+        .btn-magic-hover {
+            background-size: 200% auto;
+            transition: 0.5s;
+        }
+        .btn-magic-hover:hover { background-position: right center; }
+    </style>
+</head>
+<body class="font-sans antialiased selection:bg-violet-500 selection:text-white">
+
+    <!-- Background Ambient Blobs -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="absolute top-[-10%] left-[-10%] w-[800px] h-[800px] bg-violet-900/20 rounded-full blur-[120px] animate-float-slow"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-fuchsia-900/20 rounded-full blur-[120px] animate-float-medium delay-1000"></div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 translate-y-[-20px] pointer-events-none backdrop-blur-xl border border-white/10 bg-emerald-500/80 z-[100]">
+        <i data-lucide="check-circle-2" id="toast-icon" class="w-5 h-5 text-white"></i>
+        <span id="toast-msg" class="font-medium text-sm tracking-wide text-white">Notification</span>
+    </div>
+
+    <div class="flex h-screen overflow-hidden relative z-10">
+        
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="w-72 flex flex-col justify-between z-30 border-r border-white/5 bg-[#0F172A]/80 backdrop-blur-md sidebar-transition shrink-0">
+            <div>
+                <!-- Sidebar Header -->
+                <div id="sidebar-header" class="h-24 flex items-center px-6 justify-start transition-all duration-300">
+                    <button id="sidebar-toggle" class="w-10 h-10 shrink-0 bg-gradient-to-tr from-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/30 hover:scale-110 transition-transform duration-300 cursor-pointer border-none outline-none group" title="Toggle Menu">
+                        <i data-lucide="sparkles" class="text-white w-5 h-5 group-hover:rotate-12 transition-transform"></i>
+                    </button>
+                    <div id="sidebar-logo-text" onclick="switchTab('home')" class="ml-4 cursor-pointer flex-1 overflow-hidden transition-all duration-300 opacity-100 w-auto">
+                        <span class="text-xl font-bold tracking-widest text-white font-mono whitespace-nowrap">MAGICPHO</span>
+                    </div>
+                </div>
+
+                <!-- Nav Items -->
+                <nav class="mt-2 px-3 space-y-2">
+                    <button onclick="switchTab('home')" id="nav-home" class="w-full flex items-center gap-4 p-4 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all duration-300 group">
+                        <i data-lucide="home" class="w-5 h-5 shrink-0"></i>
+                        <span class="font-medium text-sm tracking-wide whitespace-nowrap sidebar-label">Dashboard</span>
+                    </button>
+                    <button onclick="switchTab('generate')" id="nav-generate" class="w-full flex items-center gap-4 p-4 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all duration-300 group">
+                        <i data-lucide="wand-2" class="w-5 h-5 shrink-0"></i>
+                        <span class="font-medium text-sm tracking-wide whitespace-nowrap sidebar-label">Studio Model</span>
+                    </button>
+                    <button onclick="switchTab('edit')" id="nav-edit" class="w-full flex items-center gap-4 p-4 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all duration-300 group">
+                        <i data-lucide="camera" class="w-5 h-5 shrink-0"></i>
+                        <span class="font-medium text-sm tracking-wide whitespace-nowrap sidebar-label">Product Shoot</span>
+                    </button>
+                    <button onclick="switchTab('history')" id="nav-history" class="w-full flex items-center gap-4 p-4 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all duration-300 group">
+                        <i data-lucide="history" class="w-5 h-5 shrink-0"></i>
+                        <span class="font-medium text-sm tracking-wide whitespace-nowrap sidebar-label">Galeri Saya</span>
+                    </button>
+                </nav>
+            </div>
+
+            <div class="p-4">
+                <div id="pro-badge" class="flex items-center gap-4 p-3 rounded-2xl bg-gradient-to-r from-violet-600/20 to-fuchsia-600/20 border border-white/5 backdrop-blur-sm transition-all duration-300">
+                    <div class="w-10 h-10 shrink-0 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-white shadow-lg">
+                        <i data-lucide="crown" class="w-4 h-4"></i>
+                    </div>
+                    <div class="flex-1 min-w-0 sidebar-label transition-opacity duration-300">
+                        <p class="text-sm font-bold text-white">PRO Member</p>
+                        <p class="text-xs text-violet-200">Unlimited Access</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT (Fix: overflow-x-hidden added here) -->
+        <main id="main-scroll" class="flex-1 overflow-y-auto overflow-x-hidden relative custom-scrollbar scroll-smooth">
+            
+            <!-- 1. DASHBOARD VIEW -->
+            <section id="view-home" class="min-h-[120vh] flex flex-col items-center p-8 relative pt-20 animate-fade-up">
+                <div class="relative z-10 w-full max-w-6xl space-y-8 pt-10">
+                    
+                    <!-- STICKY HEADER -->
+                    <div class="sticky top-0 z-40 w-full flex justify-start pointer-events-none h-20">
+                        <!-- Gradient Background -->
+                        <div id="header-gradient" class="absolute top-[-40px] left-[-100vw] right-[-100vw] h-40 z-[-1] transition-opacity duration-500 ease-in-out opacity-0" 
+                             style="background: linear-gradient(to bottom, #0F172A 20%, rgba(15, 23, 42, 0.95) 80%, transparent 100%);"></div>
+                        
+                        <div class="w-full relative h-full">
+                            <div id="dashboard-title-container" class="title-centered">
+                                <h1 class="text-6xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-violet-200 to-white drop-shadow-[0_0_30px_rgba(139,92,246,0.3)]">
+                                    MAGICPHO
+                                </h1>
+                            </div>
+                            <div id="dashboard-subtitle" class="text-center w-full absolute top-24 left-0 transition-all duration-500 ease-out opacity-100">
+                                <p class="text-lg md:text-xl text-violet-200/80 font-light tracking-[0.2em] uppercase inline-block">
+                                    Imajinasikan gambarmu bersama kami
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Cards -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-12">
+                        <!-- Card 1 -->
+                        <button onclick="switchTab('generate')" class="relative w-full p-6 md:p-8 rounded-3xl border border-white/5 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl group overflow-hidden bg-white/5 hover:bg-white/10">
+                            <div class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+                                <svg class="w-32 h-32 text-white/5" viewBox="0 0 100 100" fill="none"><path d="M0 0H100V100C100 44.7715 55.2285 0 0 0Z" fill="currentColor"/><circle cx="80" cy="20" r="5" fill="currentColor" class="animate-pulse"/><circle cx="60" cy="40" r="3" fill="currentColor" class="animate-pulse delay-300"/></svg>
+                            </div>
+                            <div class="absolute top-6 left-8 w-12 h-12 rounded-xl bg-black/20 flex items-center justify-center border border-white/5 shadow-inner group-hover:scale-110 transition-transform duration-300 z-10">
+                                <i data-lucide="wand-2" class="text-fuchsia-300 w-6 h-6"></i>
+                            </div>
+                            <div class="pt-16 relative z-10"> 
+                                <h3 class="text-2xl font-bold text-white mb-2 tracking-tight group-hover:text-violet-200 transition-colors">Studio Model AI</h3>
+                                <p class="text-slate-400 text-sm leading-relaxed max-w-lg">Generate model foto realistis (8K) dari teks dengan presisi tinggi.</p>
+                                <div class="mt-6 flex items-center text-sm font-bold text-slate-500 group-hover:text-white transition-colors">
+                                    Mulai Sekarang <i data-lucide="arrow-right" class="ml-2 w-4 h-4 group-hover:translate-x-2 transition-transform"></i>
+                                </div>
+                            </div>
+                        </button>
+
+                        <!-- Card 2 -->
+                        <button onclick="switchTab('edit')" class="relative w-full p-6 md:p-8 rounded-3xl border border-violet-500/30 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl group overflow-hidden bg-gradient-to-r from-violet-600/20 to-fuchsia-600/20 hover:from-violet-600/30 hover:to-fuchsia-600/30">
+                             <div class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+                                <svg class="w-40 h-40 text-violet-500/10" viewBox="0 0 100 100" fill="none" stroke="currentColor"><path d="M20 0 V20 H0" /><path d="M100 20 V0 H80" /><path d="M50 0 V30 M50 30 L80 30" /><rect x="60" y="10" width="10" height="10" fill="currentColor" opacity="0.5" /></svg>
+                            </div>
+                            <div class="absolute top-6 left-8 w-12 h-12 rounded-xl bg-black/20 flex items-center justify-center border border-white/5 shadow-inner group-hover:scale-110 transition-transform duration-300 z-10">
+                                <i data-lucide="camera" class="text-violet-300 w-6 h-6"></i>
+                            </div>
+                            <div class="pt-16 relative z-10"> 
+                                <h3 class="text-2xl font-bold text-white mb-2 tracking-tight group-hover:text-violet-200 transition-colors">Product Photoshoot</h3>
+                                <p class="text-slate-400 text-sm leading-relaxed max-w-lg">Integrasi produk ke latar/model dengan teknologi Gemini 2.5.</p>
+                                <div class="mt-6 flex items-center text-sm font-bold text-violet-300 group-hover:text-white transition-colors">
+                                    Mulai Sekarang <i data-lucide="arrow-right" class="ml-2 w-4 h-4 group-hover:translate-x-2 transition-transform"></i>
+                                </div>
+                            </div>
+                        </button>
+                        
+                        <!-- Card 3 -->
+                        <button onclick="switchTab('history')" class="relative w-full p-6 md:p-8 rounded-3xl border border-white/5 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl group overflow-hidden bg-white/5 hover:bg-white/10 lg:col-span-2">
+                             <div class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+                                <svg class="w-32 h-32 text-sky-500/10" viewBox="0 0 100 100"><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="2" fill="currentColor" /></pattern><rect width="100" height="100" fill="url(#grid)" /></svg>
+                            </div>
+                            <div class="absolute top-6 left-8 w-12 h-12 rounded-xl bg-black/20 flex items-center justify-center border border-white/5 shadow-inner group-hover:scale-110 transition-transform duration-300 z-10">
+                                <i data-lucide="layout-grid" class="text-sky-300 w-6 h-6"></i>
+                            </div>
+                            <div class="pt-16 relative z-10"> 
+                                <h3 class="text-2xl font-bold text-white mb-2 tracking-tight group-hover:text-violet-200 transition-colors">Galeri & Arsip</h3>
+                                <p class="text-slate-400 text-sm leading-relaxed max-w-lg">Akses riwayat semua karya ajaib Anda.</p>
+                                <div class="mt-6 flex items-center text-sm font-bold text-slate-500 group-hover:text-white transition-colors">
+                                    Buka Galeri <i data-lucide="arrow-right" class="ml-2 w-4 h-4 group-hover:translate-x-2 transition-transform"></i>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Horizontal Gallery -->
+                    <div class="mt-12 pb-20">
+                        <div class="flex items-center justify-between mb-6 px-2">
+                            <h3 class="text-2xl font-bold text-white flex items-center gap-2"><i data-lucide="sparkles" class="text-yellow-400 w-5 h-5"></i> Inspirasi Komunitas</h3>
+                            <span class="text-sm text-slate-400">Geser untuk melihat &rarr;</span>
+                        </div>
+                        <div class="flex gap-5 overflow-x-auto pb-8 px-2 custom-scrollbar scroll-pl-4 snap-x" id="community-gallery">
+                            <!-- Gallery items injected via JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. TOOL HEADER (Visible for Generate/Edit/History) -->
+            <header id="tool-header" class="h-20 flex items-center justify-between px-8 sticky top-0 bg-[#0F172A]/80 backdrop-blur-xl z-30 border-b border-white/5 hidden-custom animate-fade-up">
+                <div>
+                    <h1 class="text-2xl font-bold text-white tracking-tight" id="page-title">Fitur Title</h1>
+                    <p class="text-sm text-violet-300/70 mt-1" id="page-subtitle">Deskripsi Fitur</p>
+                </div>
+            </header>
+
+            <!-- 3. GENERATE VIEW (LAYOUT BARU: HASIL KIRI, KONTROL KANAN) -->
+            <section id="view-generate" class="h-[calc(100vh-5rem)] hidden-custom animate-fade-up">
+                <div class="flex flex-col lg:flex-row h-full">
+                    
+                    <!-- KIRI: CANVAS / HASIL (Lebih Lebar: flex-1) -->
+                    <div class="flex-1 bg-black/20 p-6 lg:p-10 flex flex-col items-center justify-center relative overflow-y-auto custom-scrollbar order-1">
+                        <div class="w-full max-w-4xl space-y-6">
+                            <div id="gen-main-preview" class="aspect-square lg:aspect-[16/10] bg-black/40 rounded-3xl border border-white/5 flex items-center justify-center relative overflow-hidden group shadow-2xl">
+                                <!-- Placeholder -->
+                                <div class="text-center p-10" id="gen-placeholder">
+                                    <div class="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse border border-white/10">
+                                        <i data-lucide="image" class="text-white/20 w-10 h-10"></i>
+                                    </div>
+                                    <h3 class="text-2xl font-bold text-white/40">Preview Canvas</h3>
+                                    <p class="text-white/20 mt-2">Hasil akan muncul di sini</p>
+                                </div>
+                                <!-- Result Image -->
+                                <img id="gen-result-img" class="h-full w-full object-contain hidden-custom" src="" alt="Generated">
+                                <div id="gen-download-overlay" class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-8 pointer-events-none hidden-custom">
+                                    <button id="gen-download-btn" class="pointer-events-auto self-end px-6 py-3 bg-white text-black rounded-full hover:bg-slate-200 font-bold flex items-center gap-2 shadow-lg transform transition-transform hover:-translate-y-1">
+                                        <i data-lucide="download" class="w-4 h-4"></i> Download HD
+                                    </button>
+                                </div>
+                                <!-- Loader -->
+                                <div id="gen-loader" class="absolute inset-0 bg-black/60 backdrop-blur-md flex flex-col items-center justify-center z-10 hidden-custom">
+                                    <div class="w-16 h-16 border-4 border-violet-500/30 border-t-violet-500 rounded-full animate-spin mb-4"></div>
+                                    <p class="text-violet-300 font-mono animate-pulse tracking-widest">GENERATING...</p>
+                                </div>
+                            </div>
+                            <!-- Grid Preview -->
+                            <div id="gen-grid" class="bg-white/5 p-4 rounded-3xl border border-white/10 backdrop-blur-sm hidden-custom">
+                                <div class="grid grid-cols-4 gap-4" id="gen-grid-container"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KANAN: KONTROL (Lebih Sempit: w-80 / 320px) -->
+                    <div class="w-full lg:w-80 p-6 bg-[#131b31]/80 border-l border-white/5 overflow-y-auto custom-scrollbar flex flex-col gap-6 shrink-0 order-2 z-20">
+                         <div class="space-y-2">
+                            <label class="text-sm font-bold text-violet-200 tracking-wide uppercase flex items-center gap-2">
+                               <i data-lucide="wand-2" class="w-4 h-4"></i> Prompt Imajinasi
+                            </label>
+                            <textarea id="gen-prompt" class="w-full h-48 bg-black/30 border border-white/10 rounded-2xl p-4 text-white placeholder:text-white/20 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none resize-none transition-all text-sm leading-relaxed" placeholder="Contoh: Seorang model wanita dengan pakaian adat Bali modern, berdiri di tepi pantai saat matahari terbenam..."></textarea>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wide">Quick Tags</p>
+                            <div class="flex flex-wrap gap-2" id="gen-tags"></div>
+                        </div>
+                        <button id="btn-generate" class="mt-auto w-full py-4 rounded-2xl font-bold text-white shadow-xl shadow-violet-900/20 flex items-center justify-center gap-3 transition-all bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 btn-magic-hover disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i data-lucide="sparkles" class="w-5 h-5"></i> Generate 4 Variasi
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. EDIT VIEW (LAYOUT BARU: HASIL KIRI, KONTROL KANAN) -->
+            <section id="view-edit" class="h-[calc(100vh-5rem)] hidden-custom animate-fade-up">
+                <div class="flex flex-col lg:flex-row h-full">
+                    
+                    <!-- KIRI: CANVAS / HASIL (Lebih Lebar: flex-1) -->
+                    <div class="flex-1 bg-black/20 p-6 lg:p-10 flex flex-col items-center justify-center relative overflow-y-auto custom-scrollbar order-1">
+                         <div class="w-full max-w-3xl h-full flex flex-col justify-center gap-6">
+                             <div id="edit-main-preview" class="flex-1 min-h-[400px] bg-black/40 rounded-3xl border border-white/5 flex items-center justify-center relative overflow-hidden p-4 group shadow-2xl">
+                                <div class="text-center text-white/30" id="edit-placeholder">
+                                    <i data-lucide="sparkles" class="w-16 h-16 mx-auto mb-4 opacity-50"></i>
+                                    <p class="text-xl font-medium">Hasil akan muncul di sini</p>
+                                </div>
+                                <img id="edit-result-img" class="max-h-full max-w-full object-contain rounded-lg shadow-lg hidden-custom" src="">
+                                <div id="edit-download-overlay" class="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity hidden-custom">
+                                     <button id="edit-download-btn" class="p-4 bg-violet-600 text-white rounded-full hover:bg-violet-500 shadow-xl transform hover:scale-110 transition-all">
+                                        <i data-lucide="download" class="w-6 h-6"></i>
+                                     </button>
+                                </div>
+                                <div id="edit-loader" class="absolute inset-0 bg-black/60 backdrop-blur-md flex flex-col items-center justify-center z-10 hidden-custom">
+                                    <div class="w-16 h-16 border-4 border-violet-500/30 border-t-violet-500 rounded-full animate-spin mb-4"></div>
+                                    <p class="text-violet-300 font-mono animate-pulse tracking-widest">MAGIC PROCESSING...</p>
+                                </div>
+                             </div>
+                             
+                             <div id="edit-grid" class="bg-white/5 p-4 rounded-3xl border border-white/10 shrink-0 hidden-custom">
+                                <div class="grid grid-cols-4 gap-4" id="edit-grid-container"></div>
+                             </div>
+                         </div>
+                    </div>
+
+                    <!-- KANAN: KONTROL (Lebih Sempit: w-80 / 320px) -->
+                    <div class="w-full lg:w-80 p-6 bg-[#131b31]/80 border-l border-white/5 overflow-y-auto custom-scrollbar flex flex-col gap-6 shrink-0 order-2 z-20">
+                        <div class="space-y-3">
+                            <h3 class="text-sm font-bold text-violet-200 uppercase tracking-wide flex items-center gap-2">
+                                <i data-lucide="upload" class="w-4 h-4"></i> Upload Assets
+                            </h3>
+                            <div class="grid grid-cols-1 gap-4">
+                                <!-- Product Input -->
+                                <div id="box-product" class="relative h-32 rounded-2xl border-2 border-dashed border-white/10 hover:border-violet-500/50 hover:bg-white/5 cursor-pointer transition-all group overflow-hidden" onclick="document.getElementById('file-product').click()">
+                                    <input type="file" id="file-product" class="hidden" accept="image/*">
+                                    <div id="preview-product-container" class="hidden-custom h-full w-full relative">
+                                        <img id="preview-product-img" class="h-full w-full object-cover opacity-60" src="">
+                                        <button class="absolute top-2 right-2 p-1 bg-red-500/80 hover:bg-red-500 text-white rounded-full z-10" onclick="event.stopPropagation(); clearImage('product')"><i data-lucide="x" class="w-3 h-3"></i></button>
+                                    </div>
+                                    <div id="empty-product" class="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                                        <div class="mb-2 opacity-70 group-hover:scale-110 transition-transform text-center w-full flex justify-center">
+                                            <i data-lucide="camera" class="text-violet-400 w-6 h-6"></i>
+                                        </div>
+                                        <p class="text-[10px] font-bold text-slate-300 uppercase tracking-wide">Produk (Wajib)</p>
+                                    </div>
+                                </div>
+
+                                <!-- Model Input -->
+                                <div id="box-model" class="relative h-32 rounded-2xl border-2 border-dashed border-white/10 hover:border-fuchsia-500/50 hover:bg-white/5 cursor-pointer transition-all group overflow-hidden" onclick="document.getElementById('file-model').click()">
+                                    <input type="file" id="file-model" class="hidden" accept="image/*">
+                                    <div id="preview-model-container" class="hidden-custom h-full w-full relative">
+                                        <img id="preview-model-img" class="h-full w-full object-cover opacity-60" src="">
+                                        <button class="absolute top-2 right-2 p-1 bg-red-500/80 hover:bg-red-500 text-white rounded-full z-10" onclick="event.stopPropagation(); clearImage('model')"><i data-lucide="x" class="w-3 h-3"></i></button>
+                                    </div>
+                                    <div id="empty-model" class="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                                        <div class="mb-2 opacity-70 group-hover:scale-110 transition-transform text-center w-full flex justify-center">
+                                            <i data-lucide="user" class="text-fuchsia-400 w-6 h-6"></i>
+                                        </div>
+                                        <p class="text-[10px] font-bold text-slate-300 uppercase tracking-wide">Model (Opsional)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <h3 class="text-sm font-bold text-violet-200 uppercase tracking-wide flex items-center gap-2">
+                                <i data-lucide="wand-2" class="w-4 h-4"></i> Prompt Instruksi
+                            </h3>
+                            <textarea id="edit-prompt" class="w-full h-32 bg-black/30 border border-white/10 rounded-2xl p-4 text-white placeholder:text-white/20 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none resize-none text-xs leading-relaxed" placeholder="Contoh: Letakkan produk ini di atas meja kayu oak..."></textarea>
+                        </div>
+
+                        <button id="btn-edit" class="mt-auto w-full py-4 rounded-2xl font-bold text-white shadow-xl flex items-center justify-center gap-3 transition-all bg-gradient-to-r from-[#4C1D95] via-[#6D28D9] to-[#4C1D95] bg-[length:200%_200%] btn-magic-hover disabled:opacity-50 duration-500">
+                            <i data-lucide="layers" class="w-5 h-5"></i> Start Magic
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. HISTORY VIEW -->
+            <section id="view-history" class="p-8 h-full overflow-y-auto custom-scrollbar hidden-custom animate-fade-up">
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-2xl font-bold text-white">Arsip Kreasi</h2>
+                    <button onclick="clearHistory()" class="px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-sm font-medium transition-colors">Clear All</button>
+                </div>
+                <div id="history-empty" class="text-center py-32 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                    <i data-lucide="history" class="w-16 h-16 mx-auto text-white/20 mb-4"></i>
+                    <p class="text-white/40 text-lg">Belum ada karya tersimpan.</p>
+                </div>
+                <div id="history-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-20 hidden-custom">
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- LOGIC SCRIPT -->
+    <script>
+        // CONFIG
+        const API_KEY = ""; 
+        const MODEL_GEN = "imagen-4.0-generate-001";
+        const MODEL_EDIT = "gemini-2.5-flash-image-preview";
+
+        let sidebarOpen = true;
+        let history = [];
+        let editImageBase64 = null;
+        let modelImageBase64 = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            renderGallery();
+            setupEventListeners();
+            switchTab('home');
+        });
+
+        // --- UI LOGIC ---
+        function switchTab(tabId) {
+            // Nav Styles
+            document.querySelectorAll('nav button').forEach(btn => {
+                if(btn.id === `nav-${tabId}`) {
+                    btn.classList.add('bg-gradient-to-r', 'from-violet-600', 'to-indigo-600', 'text-white', 'shadow-lg', 'shadow-violet-900/50');
+                    btn.classList.remove('text-slate-400', 'hover:bg-white/5');
+                } else {
+                    btn.classList.remove('bg-gradient-to-r', 'from-violet-600', 'to-indigo-600', 'text-white', 'shadow-lg', 'shadow-violet-900/50');
+                    btn.classList.add('text-slate-400', 'hover:bg-white/5');
+                }
+            });
+
+            // View Switching
+            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden-custom'));
+            
+            const toolHeader = document.getElementById('tool-header');
+            const pageTitle = document.getElementById('page-title');
+            const pageSubtitle = document.getElementById('page-subtitle');
+
+            if (tabId === 'home') {
+                document.getElementById('view-home').classList.remove('hidden-custom');
+                toolHeader.classList.add('hidden-custom');
+            } else {
+                toolHeader.classList.remove('hidden-custom');
+                document.getElementById(`view-${tabId}`).classList.remove('hidden-custom');
+                
+                if(tabId === 'generate') {
+                    pageTitle.textContent = "Studio Model AI";
+                    pageSubtitle.textContent = "Teknologi Imagen 3.0 High-Fidelity";
+                } else if(tabId === 'edit') {
+                    pageTitle.textContent = "Product Photoshoot";
+                    pageSubtitle.textContent = "Teknologi Gemini 2.5 Multimodal";
+                } else if(tabId === 'history') {
+                    pageTitle.textContent = "Galeri Project";
+                    pageSubtitle.textContent = "Arsip Kreasi Anda";
+                    renderHistory();
+                }
+            }
+        }
+
+        function toggleSidebar() {
+            sidebarOpen = !sidebarOpen;
+            const sidebar = document.getElementById('sidebar');
+            const logoText = document.getElementById('sidebar-logo-text');
+            const labels = document.querySelectorAll('.sidebar-label');
+            const proBadge = document.getElementById('pro-badge');
+            const sidebarHeader = document.getElementById('sidebar-header');
+
+            if (sidebarOpen) {
+                sidebar.classList.replace('w-20', 'w-72');
+                sidebar.classList.remove('bg-transparent', 'border-none');
+                sidebar.classList.add('bg-[#0F172A]/80', 'border-r', 'border-white/5', 'backdrop-blur-md');
+                logoText.classList.remove('opacity-0', 'w-0', 'hidden');
+                logoText.classList.add('opacity-100', 'w-auto');
+                sidebarHeader.classList.replace('justify-center', 'justify-start');
+                sidebarHeader.classList.remove('px-0');
+                sidebarHeader.classList.add('px-6');
+                labels.forEach(l => { l.classList.remove('opacity-0', 'hidden', 'w-0'); l.classList.add('opacity-100', 'block'); });
+                proBadge.classList.remove('justify-center', 'p-3');
+            } else {
+                sidebar.classList.replace('w-72', 'w-20');
+                sidebar.classList.remove('bg-[#0F172A]/80', 'border-r', 'border-white/5', 'backdrop-blur-md');
+                sidebar.classList.add('bg-transparent', 'border-none');
+                logoText.classList.remove('opacity-100', 'w-auto');
+                logoText.classList.add('opacity-0', 'w-0', 'hidden');
+                sidebarHeader.classList.replace('justify-start', 'justify-center');
+                sidebarHeader.classList.remove('px-6');
+                sidebarHeader.classList.add('px-0');
+                labels.forEach(l => { l.classList.remove('opacity-100', 'block'); l.classList.add('opacity-0', 'hidden', 'w-0'); });
+                proBadge.classList.add('justify-center', 'p-3');
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('sidebar-toggle').addEventListener('click', toggleSidebar);
+            
+            // Scroll
+            document.getElementById('main-scroll').addEventListener('scroll', (e) => {
+                const scrollTop = e.target.scrollTop;
+                const titleContainer = document.getElementById('dashboard-title-container');
+                const subtitle = document.getElementById('dashboard-subtitle');
+                const gradient = document.getElementById('header-gradient');
+
+                if (scrollTop > 50) {
+                    titleContainer.classList.remove('title-centered');
+                    titleContainer.classList.add('title-scrolled');
+                    subtitle.classList.replace('opacity-100', 'opacity-0');
+                    gradient.classList.replace('opacity-0', 'opacity-100');
+                } else {
+                    titleContainer.classList.remove('title-scrolled');
+                    titleContainer.classList.add('title-centered');
+                    subtitle.classList.replace('opacity-0', 'opacity-100');
+                    gradient.classList.replace('opacity-100', 'opacity-0');
+                }
+            });
+
+            document.getElementById('btn-generate').addEventListener('click', runGenerate);
+            document.getElementById('btn-edit').addEventListener('click', runEdit);
+
+            // Tags
+            const genTags = ['Cinematic Light', 'Indonesian Model', 'Cyberpunk', 'Studio Portrait'];
+            const tagContainer = document.getElementById('gen-tags');
+            genTags.forEach(tag => {
+                const btn = document.createElement('button');
+                btn.className = "px-3 py-1.5 text-xs font-medium rounded-lg bg-white/5 hover:bg-violet-600 border border-white/10 hover:border-violet-500 text-slate-300 hover:text-white transition-all";
+                btn.textContent = "+ " + tag;
+                btn.onclick = () => {
+                    const ta = document.getElementById('gen-prompt');
+                    ta.value = ta.value ? ta.value + ", " + tag : tag;
+                };
+                tagContainer.appendChild(btn);
+            });
+
+            setupFileInput('file-product', 'product');
+            setupFileInput('file-model', 'model');
+        }
+
+        function setupFileInput(id, type) {
+            document.getElementById(id).addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                try {
+                    const b64 = await fileToBase64(file);
+                    if (type === 'product') {
+                        editImageBase64 = b64;
+                        document.getElementById('preview-product-img').src = b64;
+                        document.getElementById('preview-product-container').classList.remove('hidden-custom');
+                        document.getElementById('empty-product').classList.add('hidden-custom');
+                        document.getElementById('box-product').classList.add('border-violet-500/50', 'bg-violet-500/10');
+                    } else {
+                        modelImageBase64 = b64;
+                        document.getElementById('preview-model-img').src = b64;
+                        document.getElementById('preview-model-container').classList.remove('hidden-custom');
+                        document.getElementById('empty-model').classList.add('hidden-custom');
+                        document.getElementById('box-model').classList.add('border-fuchsia-500/50', 'bg-fuchsia-500/10');
+                    }
+                } catch (err) { showToast('Gagal membaca file', 'error'); }
+            });
+        }
+
+        function clearImage(type) {
+            if (type === 'product') {
+                editImageBase64 = null;
+                document.getElementById('file-product').value = '';
+                document.getElementById('preview-product-container').classList.add('hidden-custom');
+                document.getElementById('empty-product').classList.remove('hidden-custom');
+                document.getElementById('box-product').classList.remove('border-violet-500/50', 'bg-violet-500/10');
+            } else {
+                modelImageBase64 = null;
+                document.getElementById('file-model').value = '';
+                document.getElementById('preview-model-container').classList.add('hidden-custom');
+                document.getElementById('empty-model').classList.remove('hidden-custom');
+                document.getElementById('box-model').classList.remove('border-fuchsia-500/50', 'bg-fuchsia-500/10');
+            }
+        }
+
+        function renderGallery() {
+            const gallery = document.getElementById('community-gallery');
+            const images = [
+                "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=60",
+                "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=800&auto=format&fit=crop&q=60",
+                "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&auto=format&fit=crop&q=60",
+                "https://images.unsplash.com/photo-1581338834647-b0fb40704e21?w=800&auto=format&fit=crop&q=60",
+                "https://images.unsplash.com/photo-1500917293891-ef795e70e1f6?w=800&auto=format&fit=crop&q=60"
+            ];
+            gallery.innerHTML = images.map((src, i) => `
+                <div class="min-w-[200px] aspect-[4/5] rounded-2xl overflow-hidden relative group snap-start border border-white/10 bg-white/5 shadow-lg transition-transform hover:scale-[1.02]">
+                    <img src="${src}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                        <span class="text-xs font-mono text-violet-300">AI Generated</span>
+                        <span class="text-sm font-bold text-white">Masterpiece #0${i + 1}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- API CALLS ---
+        async function runGenerate() {
+            const prompt = document.getElementById('gen-prompt').value;
+            if (!prompt) { showToast('Harap isi prompt!', 'error'); return; }
+            toggleLoading('gen', true);
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_GEN}:predict?key=${API_KEY}`;
+                const response = await fetch(url, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ instances: [{ prompt: prompt + ", 8k photorealistic" }], parameters: { sampleCount: 4, aspectRatio: "1:1" } })
+                });
+                const data = await response.json();
+                if (data.predictions) {
+                    const imgs = data.predictions.map(p => `data:image/png;base64,${p.bytesBase64Encoded}`);
+                    displayGenResults(imgs);
+                    addToHistory(imgs[0], "Generate", prompt);
+                    showToast('Berhasil!', 'success');
+                }
+            } catch (e) { showToast('Gagal.', 'error'); } 
+            finally { toggleLoading('gen', false); }
+        }
+
+        async function runEdit() {
+             if (!editImageBase64) { showToast('Wajib upload produk!', 'error'); return; }
+             const prompt = document.getElementById('edit-prompt').value;
+             if (!prompt) { showToast('Harap isi instruksi!', 'error'); return; }
+             toggleLoading('edit', true);
+             try {
+                 const promises = [1,2,3,4].map(() => generateEditVariation(prompt));
+                 const results = await Promise.all(promises);
+                 const valid = results.filter(r => r);
+                 if (valid.length) {
+                     displayEditResults(valid);
+                     addToHistory(valid[0], "Edit", prompt);
+                     showToast('Selesai!', 'success');
+                 }
+             } catch (e) { showToast('Gagal.', 'error'); }
+             finally { toggleLoading('edit', false); }
+        }
+
+        async function generateEditVariation(prompt) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_EDIT}:generateContent?key=${API_KEY}`;
+            const parts = [{ text: prompt }, { inlineData: { mimeType: "image/png", data: cleanBase64(editImageBase64) } }];
+            if (modelImageBase64) parts.push({ inlineData: { mimeType: "image/png", data: cleanBase64(modelImageBase64) } });
+            
+            const response = await fetch(url, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseModalities: ["IMAGE"], temperature: 0.4 } })
+            });
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data ? `data:image/png;base64,${data.candidates[0].content.parts.find(p => p.inlineData).inlineData.data}` : null;
+        }
+
+        function displayGenResults(imgs) {
+            document.getElementById('gen-result-img').src = imgs[0];
+            document.getElementById('gen-result-img').classList.remove('hidden-custom');
+            document.getElementById('gen-placeholder').classList.add('hidden-custom');
+            document.getElementById('gen-download-overlay').classList.remove('hidden-custom');
+            document.getElementById('gen-grid').classList.remove('hidden-custom');
+            document.getElementById('gen-grid-container').innerHTML = imgs.map(src => `<button onclick="document.getElementById('gen-result-img').src='${src}'" class="aspect-square rounded-xl overflow-hidden border border-white/20 hover:border-white"><img src="${src}" class="w-full h-full object-cover"></button>`).join('');
+        }
+
+        function displayEditResults(imgs) {
+            document.getElementById('edit-result-img').src = imgs[0];
+            document.getElementById('edit-result-img').classList.remove('hidden-custom');
+            document.getElementById('edit-placeholder').classList.add('hidden-custom');
+            document.getElementById('edit-download-overlay').classList.remove('hidden-custom');
+            document.getElementById('edit-grid').classList.remove('hidden-custom');
+            document.getElementById('edit-grid-container').innerHTML = imgs.map(src => `<button onclick="document.getElementById('edit-result-img').src='${src}'" class="aspect-square rounded-xl overflow-hidden border border-white/20 hover:border-white"><img src="${src}" class="w-full h-full object-cover"></button>`).join('');
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('history-grid');
+            if (!history.length) { container.classList.add('hidden-custom'); document.getElementById('history-empty').classList.remove('hidden-custom'); return; }
+            document.getElementById('history-empty').classList.add('hidden-custom');
+            container.classList.remove('hidden-custom');
+            container.innerHTML = history.map(h => `<div class="bg-white/5 rounded-xl overflow-hidden"><img src="${h.img}" class="w-full h-48 object-cover"><div class="p-3"><p class="text-xs font-bold text-violet-300">${h.type}</p><p class="text-xs text-slate-400 truncate">${h.prompt}</p></div></div>`).join('');
+        }
+
+        function toggleLoading(type, show) {
+            const loader = document.getElementById(`${type}-loader`);
+            show ? loader.classList.remove('hidden-custom') : loader.classList.add('hidden-custom');
+        }
+        function addToHistory(img, type, prompt) { history.unshift({ img, type, prompt }); }
+        function clearHistory() { history = []; renderHistory(); }
+        function downloadImage(src) { const a = document.createElement('a'); a.href = src; a.download = 'magic.png'; a.click(); }
+        function fileToBase64(file) { return new Promise((r, j) => { const reader = new FileReader(); reader.onload = () => r(reader.result); reader.onerror = j; reader.readAsDataURL(file); }); }
+        function cleanBase64(b64) { return b64.split(',')[1]; }
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            toast.classList.replace('opacity-0', 'opacity-100');
+            toast.classList.replace('translate-y-[-20px]', 'translate-y-0');
+            setTimeout(() => { toast.classList.replace('opacity-100', 'opacity-0'); toast.classList.replace('translate-y-0', 'translate-y-[-20px]'); }, 3000);
+        }
+    </script>
+</body>
+</html>
